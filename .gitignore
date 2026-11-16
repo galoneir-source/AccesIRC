@@ -1,0 +1,8 @@
+build/
+dist/
+__pycache__/
+*.pyc
+*.spec
+*.zip
+AccesIRC_corregido.py
+AccesIRC_*_original.py

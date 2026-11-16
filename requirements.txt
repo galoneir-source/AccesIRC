@@ -1,0 +1,4 @@
+wxPython>=4.2.1
+accessible_output2>=0.17
+truststore>=0.9
+certifi

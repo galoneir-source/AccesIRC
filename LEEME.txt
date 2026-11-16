@@ -1,0 +1,172 @@
+ACCESIRC 1.5.3: CLIENTE IRC ACCESIBLE PARA NVDA
+
+AccesIRC es un cliente de IRC para Windows hecho para usarse con lector de pantalla.
+Los mensajes nuevos se leen solos con la voz de NVDA. Todo se maneja con el teclado,
+y el historial se recorre con las flechas como un documento normal.
+
+NOVEDADES DE LA 1.5.3
+- Más seguridad con los certificados: la opción «Verificar con» ya no se ofrece cuando el
+  dominio común es genérico (com.ar, com.mx, co.uk...) o de un servicio donde cualquiera puede
+  crear subdominios (duckdns.org, no-ip, github.io...).
+- Con el método «Mensaje a NickServ», si entras con el apodo alternativo, AccesIRC te
+  identifica igualmente con tu cuenta.
+- Si estabas ausente (/away) y se corta la conexión, al reconectar vuelves a quedar ausente.
+- Canales con clave en «Canales al entrar», y las claves de /join #canal clave se recuerdan
+  al reconectar.
+
+INSTALACIÓN (solo la primera vez)
+
+1. Instala Python desde python.org (la versión 3.12 es la más segura).
+   En el instalador, marca la casilla "Add python.exe to PATH".
+2. Descomprime esta carpeta donde quieras, por ejemplo en Documentos.
+3. Ejecuta instalar.bat y espera a que diga "Listo".
+
+Si actualizas desde una versión anterior, sustituye AccesIRC.py y requirements.txt y
+vuelve a ejecutar instalar.bat (la 1.3 necesita dos componentes nuevos para los
+certificados). Tu configuración se conserva.
+
+CONECTARSE CON EL APODO REGISTRADO, SIN ESCRIBIR LA CONTRASEÑA CADA VEZ
+
+Abre AccesIRC.bat, o pulsa Control+O. En el diálogo de conexión:
+  Red: elige Chat Hispano (o escribe el nombre de otra red).
+  Apodo: tu apodo, sin la contraseña.
+  Método de identificación: "Contraseña junto al apodo" para Chat Hispano.
+  Contraseña del apodo: tu contraseña.
+  Canales al entrar: por ejemplo #ciegos, #radioaficion.
+    Si un canal tiene clave, escríbela detrás: #ciegos, #privado miclave.
+Pulsa Conectar. AccesIRC envía apodo:contraseña al conectar, igual que hacías con /nick.
+Cada red guarda sus propios datos: al elegirla en la lista, se rellenan solos.
+La contraseña se guarda cifrada con tu usuario de Windows.
+
+En Libera.Chat y otras redes modernas, el método es "SASL". En redes antiguas con
+NickServ, "Mensaje a NickServ".
+
+CONEXIÓN CIFRADA EN CHAT HISPANO
+Servidor ssl.chathispano.com, puerto 6697, con "Nombre del certificado"
+chatmovil.chathispano.com. El servidor cifrado de Chat Hispano presenta un certificado
+auténtico de Let's Encrypt, pero emitido para el nombre chatmovil.chathispano.com.
+Comprobándolo con ese nombre, la verificación es completa y segura.
+La red "Chat Hispano" de la lista ya viene así. Al marcar "Usar conexión cifrada" con
+irc.chathispano.com escrito, AccesIRC lo cambia todo solo.
+
+CERTIFICADOS DE SEGURIDAD
+AccesIRC comprueba el certificado del servidor con el almacén de certificados de Windows,
+el mismo que usan los navegadores. Así se completan solos los certificados intermedios
+que falten.
+Si aun así no se puede verificar, aparece un diálogo con el mensaje exacto del error y los
+datos del certificado: para quién es, quién lo firma, fechas y huella digital.
+Puedes elegir "Confiar en este certificado". AccesIRC recordará esa huella y, a partir de
+entonces, solo aceptará exactamente ese certificado.
+Si el certificado es válido pero está emitido para otro nombre, como pasa en Chat Hispano,
+el diálogo ofrece "Verificar con" ese nombre: es la opción segura y no hay que aceptar nada.
+Esta opción solo aparece si el otro nombre es del mismo dominio (por ejemplo, chatmovil.chathispano.com
+para ssl.chathispano.com). Un certificado válido de un dominio ajeno no prueba nada y nunca se ofrece. Si algún día cambia, te avisará antes
+de enviar tu contraseña. Es mucho más seguro que conectar sin comprobar nada.
+Si el servidor renueva su certificado y el nuevo se verifica correctamente, AccesIRC lo acepta solo
+y olvida el que confiaste a mano, sin avisos.
+Si tienes una contraseña y desmarcas el cifrado o la verificación del certificado, AccesIRC te
+avisará de que la contraseña no irá protegida antes de conectar.
+Menú Ayuda, "Diagnóstico de la conexión cifrada": prueba el servidor con cada almacén de
+certificados y muestra un informe que se puede copiar y enviar a quien te ayude.
+
+LA VENTANA
+
+Tiene cuatro zonas. Se pasa de una a otra con F6, o con Alt y la letra:
+  Alt+M  Mensaje: donde escribes. Intro envía.
+  Alt+H  Historial: la conversación. Se lee con las flechas.
+  Alt+V  Ventanas: el servidor, tus canales y tus privados, con los mensajes sin leer.
+  Alt+U  Usuarios: quién está en el canal. Intro abre un privado. La tecla de
+         aplicaciones da más opciones: whois, enviar un archivo, ignorar.
+
+Lo que dice la voz: los mensajes de los demás se leen como «Dani dice: hola», y los tuyos como
+«Has dicho: hola». Las acciones con /me se leen tal cual, por ejemplo «charlie20 saluda».
+Si no quieres oír tus propios mensajes, desmarca en el menú Opciones «Leer mis propios mensajes».
+
+Atajos más útiles:
+  Alt+1 ... Alt+0                 Lee el último mensaje, el penúltimo... sin moverte.
+  Ctrl+Avance / Retroceso de pág  Cambia de canal o de privado.
+  Ctrl+1 ... Ctrl+9               Va directamente a una ventana.
+  Ctrl+J                          Unirse a un canal.
+  Ctrl+Mayús+E                    Enviar un archivo.
+  Ctrl+Mayús+T                    Ver las transferencias de archivos.
+  F2                              Silenciar o activar la voz.
+  Ctrl+Mayús+V                    Probar la voz.
+  F1                              Lista completa de atajos y órdenes.
+
+ENVIAR Y RECIBIR ARCHIVOS (DCC)
+
+Recibir: cuando alguien te envía un archivo, suena un aviso y aparece un diálogo con el
+nombre y el tamaño. Elige Aceptar o Rechazar. Se guarda en Descargas\AccesIRC.
+Al terminar suena otro aviso y se anuncia. Acepta solo archivos de gente de confianza.
+Si el archivo es de un tipo que puede ejecutar programas (.exe, .bat, .lnk, .js, .vbs, .msi...),
+el diálogo lo avisa claramente. Los nombres se limpian de trucos para esconder la extensión,
+y los archivos recibidos llevan la marca de "descargado de internet", así que Windows avisará
+antes de abrirlos. Solo se atiende una petición a la vez y solo las que llegan por privado.
+
+Enviar: Ctrl+Mayús+E, o /dcc send apodo, o desde la lista de usuarios con la tecla de
+aplicaciones. Para enviar, la otra persona tiene que poder conectarse a tu ordenador:
+  - La primera vez, Windows preguntará si permites que AccesIRC use la red. Acepta.
+  - Si tienes router, abre en él los puertos 5000 a 5010 hacia tu ordenador.
+  - Si no puedes abrir puertos, activa el "modo pasivo" en Opciones, Opciones de DCC.
+    Así la conexión la abre el otro, si su programa lo admite (mIRC sí).
+Recibir archivos suele funcionar sin tocar nada.
+Mientras esperas a que acepten tu archivo, AccesIRC rechaza las conexiones que no vienen de esa
+persona, siempre que la red muestre su dirección.
+
+SONIDOS (COMO EN IRCAP)
+
+Menú Opciones, Configurar sonidos. Para cada evento (privado, te nombran, alguien entra,
+alguien sale, te expulsan, te dan op, archivo recibido...) puedes elegir un archivo WAV,
+probarlo, dejar el sonido de Windows o silenciarlo. Sirven los WAV de IRCap o de
+cualquier otro sitio. Los MP3 no valen: hay que convertirlos a WAV.
+Atajo: copia archivos WAV a la carpeta de sonidos con el nombre del evento (privado.wav,
+mencion.wav, entrada.wav, salida.wav, expulsion.wav, op.wav, dcc.wav, dcc_fin.wav...)
+y se usarán solos. La carpeta se abre desde el mismo diálogo.
+F5 activa o desactiva todos los sonidos.
+
+AUTOMATIZACIONES
+
+En el diálogo de conexión:
+  Órdenes automáticas al conectar: una por línea, se ejecutan nada más conectar.
+  Por ejemplo:  mode $yo +x   o   msg amigo ya estoy aquí
+
+Menú Opciones, Automatizaciones:
+  - Volver a entrar en el canal si te expulsan.
+  - Responder a los privados cuando estás ausente. Con /away comiendo, a quien te
+    escriba en privado le llega una vez "Ahora mismo estoy ausente: comiendo".
+    /away sin texto te devuelve.
+  - Palabras que te avisan: suenan y se leen como si te nombraran. Por ejemplo: radio, ea5.
+  - Ignorar apodos. También con /ignore apodo y /unignore apodo.
+  - Respuestas automáticas, una por línea:  texto que aparece => respuesta
+    Ejemplos:
+      hola Dani => ¡Hola $nick! Bienvenido a $canal
+      !hora => /me mira el reloj
+    $nick es quien escribe, $canal el canal y $yo tu apodo. Cada respuesta se espera
+    30 segundos antes de repetirse en el mismo canal, para no inundar.
+
+PARA NO SER EXPULSADO POR EXCESO DE MENSAJES
+Si pegas un texto largo, AccesIRC envía unas pocas líneas seguidas y después una cada 2 segundos,
+para que el servidor no te desconecte. Lo mismo con las respuestas automáticas.
+
+DATOS Y PRIVACIDAD
+La configuración está en %APPDATA%\AccesIRC\config.json. Las contraseñas van cifradas
+con tu usuario de Windows: si copias la configuración a otro ordenador, tendrás que
+volver a escribirlas.
+Las conversaciones se guardan en %APPDATA%\AccesIRC\registros (se puede desactivar en
+el menú Opciones). Si algo falla, los detalles están en %APPDATA%\AccesIRC\errores.log.
+Para enviar archivos, AccesIRC consulta tu IP pública en api.ipify.org. Se puede
+desactivar en Opciones de DCC.
+
+PROGRAMA EJECUTABLE (OPCIONAL)
+Si quieres un AccesIRC.exe que funcione sin Python, ejecuta crear_exe.bat después de
+instalar.bat. En la carpeta dist aparecerán la carpeta AccesIRC, con AccesIRC.exe dentro,
+y AccesIRC-para-compartir.zip para enviarlo a otras personas. Hay que descomprimir el zip
+entero: el exe solo no funciona sin la carpeta _internal que lo acompaña.
+
+PROBLEMAS CON LA VOZ
+Pulsa Control+Mayúsculas+V. Dirá con qué lector está hablando. Si no encuentra ninguno,
+mostrará un aviso. Los detalles están en %APPDATA%\AccesIRC\errores.log.
+
+LICENCIA
+AccesIRC es software libre con licencia MIT: puedes usarlo, copiarlo, modificarlo y
+compartirlo, citando a los autores (Daniel Villalón y José Ángel Ortiz). El texto completo está en el archivo LICENSE.
