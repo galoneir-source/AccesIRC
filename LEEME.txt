@@ -1,8 +1,17 @@
-ACCESIRC 1.5.3: CLIENTE IRC ACCESIBLE PARA NVDA
+ACCESIRC 1.6.0: CLIENTE IRC ACCESIBLE PARA NVDA
 
 AccesIRC es un cliente de IRC para Windows hecho para usarse con lector de pantalla.
 Los mensajes nuevos se leen solos con la voz de NVDA. Todo se maneja con el teclado,
 y el historial se recorre con las flechas como un documento normal.
+
+NOVEDADES DE LA 1.6.0
+- Actualizaciones automáticas. Una vez al día, al abrir AccesIRC, se comprueba si hay una
+  versión nueva y, si la hay, se anuncia con la voz. Menú Ayuda, "Buscar actualizaciones":
+  muestra las novedades y, con "Actualizar ahora", AccesIRC descarga la versión nueva,
+  comprueba que es la auténtica, se cierra, se instala y se vuelve a abrir solo.
+  Tu configuración se conserva. Funciona en la versión instalada con el instalador; en la
+  portátil o con Python, abre la página de descarga.
+  Se puede desactivar en el menú Opciones, "Buscar actualizaciones al iniciar".
 
 NOVEDADES DE LA 1.5.3
 - Más seguridad con los certificados: la opción «Verificar con» ya no se ofrece cuando el
@@ -17,7 +26,7 @@ NOVEDADES DE LA 1.5.3
 INSTALACIÓN
 
 CON EL INSTALADOR (LO MÁS FÁCIL, NO HACE FALTA PYTHON)
-1. Abre AccesIRC-1.5.3-instalador.exe.
+1. Abre AccesIRC-1.6.0-instalador.exe.
 2. Si Windows muestra "Windows protegió su PC", es porque el programa es nuevo y no está
    firmado. Pulsa "Más información" y después "Ejecutar de todas formas".
 3. Pulsa Siguiente en cada paso. Puedes marcar "Crear un acceso directo en el escritorio".
@@ -28,7 +37,7 @@ tu configuración y tus contraseñas se conservan. Se desinstala desde Configura
 Aplicaciones, como cualquier programa.
 
 VERSIÓN PORTÁTIL (SIN INSTALAR)
-Descomprime entero AccesIRC-1.5.3-portatil.zip donde quieras, por ejemplo en un pendrive,
+Descomprime entero AccesIRC-1.6.0-portatil.zip donde quieras, por ejemplo en un pendrive,
 y abre AccesIRC.exe. El exe solo no funciona sin la carpeta _internal que lo acompaña.
 
 CON PYTHON (PARA QUIEN QUIERA EL CÓDIGO FUENTE)
@@ -170,6 +179,8 @@ Las conversaciones se guardan en %APPDATA%\AccesIRC\registros (se puede desactiv
 el menú Opciones). Si algo falla, los detalles están en %APPDATA%\AccesIRC\errores.log.
 Para enviar archivos, AccesIRC consulta tu IP pública en api.ipify.org. Se puede
 desactivar en Opciones de DCC.
+Para buscar actualizaciones, AccesIRC consulta una vez al día api.github.com, sin enviar
+ningún dato tuyo. Se puede desactivar en el menú Opciones.
 
 CREAR EL INSTALADOR (SOLO PARA QUIEN DISTRIBUYE EL PROGRAMA)
 Con Python 3.13 instalado, ejecuta crear_exe.bat. Instala lo que necesita, crea el programa

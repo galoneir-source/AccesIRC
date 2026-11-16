@@ -52,6 +52,14 @@ Name: "{autodesktop}\AccesIRC"; Filename: "{app}\AccesIRC.exe"; Tasks: escritori
 
 [Run]
 Filename: "{app}\AccesIRC.exe"; Description: "Abrir AccesIRC ahora"; Flags: nowait postinstall skipifsilent
+; En las actualizaciones automáticas (silenciosas), AccesIRC pasa /REABRIR=si para volver a abrirse.
+Filename: "{app}\AccesIRC.exe"; Flags: nowait; Check: Reabrir
 
 ; La configuración y las conversaciones están en %APPDATA%\AccesIRC y no se borran al
 ; desinstalar, para no perder las contraseñas ni los registros si se reinstala.
+
+[Code]
+function Reabrir: Boolean;
+begin
+  Result := WizardSilent and (CompareText(ExpandConstant('{param:REABRIR|no}'), 'si') = 0);
+end;

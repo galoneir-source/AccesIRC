@@ -22,13 +22,16 @@ import shutil
 import socket
 import ssl
 import struct
+import subprocess
 import sys
 import tempfile
 import threading
 import time
 import traceback
 import unicodedata
+import urllib.error
 import urllib.request
+import webbrowser
 
 import wx
 
@@ -38,13 +41,19 @@ except ImportError:  # fuera de Windows
     winsound = None
 
 NOMBRE_APP = "AccesIRC"
-VERSION = "1.5.3"
+VERSION = "1.6.0"
 DIR_DATOS = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), NOMBRE_APP)
 RUTA_CONFIG = os.path.join(DIR_DATOS, "config.json")
 DIR_REGISTROS = os.path.join(DIR_DATOS, "registros")
 DIR_SONIDOS = os.path.join(DIR_DATOS, "sonidos")
 RUTA_ERRORES = os.path.join(DIR_DATOS, "errores.log")
 DESCARGAS_DEFECTO = os.path.join(os.path.expanduser("~"), "Downloads", NOMBRE_APP)
+REPO_GITHUB = "galoneir-source/AccesIRC"
+URL_ULTIMA_VERSION = "https://api.github.com/repos/%s/releases/latest" % REPO_GITHUB
+URL_DESCARGAS = "https://github.com/%s/releases/latest" % REPO_GITHUB
+DIR_ACTUALIZACION = os.path.join(tempfile.gettempdir(), NOMBRE_APP + "-actualizacion")
+# Como mucho una comprobación automática cada 20 horas.
+INTERVALO_ACTUALIZACION = 20 * 3600
 MAX_LINEAS = 1500
 # Límite para archivos recibidos cuando el emisor no dice el tamaño.
 MAX_DCC_SIN_TAMANO = 1024 * 1024 * 1024
@@ -96,6 +105,9 @@ CONFIG_DEFECTO = {
     "dcc_ip_auto": True,
     "dcc_puertos": "5000-5010",
     "dcc_pasivo": False,
+    "buscar_actualizaciones": True,
+    "ultima_comprobacion": 0,
+    "version_omitida": "",
 }
 
 REDES_PREDEFINIDAS = {
@@ -796,6 +808,111 @@ def ip_publica():
         ip = r.read(64).decode("ascii").strip()
     socket.inet_aton(ip)
     return ip
+
+
+# ---------------------------------------------------------------------------
+# Actualizaciones
+# ---------------------------------------------------------------------------
+
+def version_tupla(texto):
+    """'v1.10.2' -> (1, 10, 2), para comparar versiones como números y no como texto."""
+    numeros = re.findall(r"\d+", str(texto or ""))[:4]
+    return tuple(int(n) for n in numeros) if numeros else (0,)
+
+
+def abrir_url(url, timeout):
+    """Abre una dirección HTTPS comprobando el certificado con el almacén de Windows."""
+    peticion = urllib.request.Request(url, headers={
+        "User-Agent": "%s/%s" % (NOMBRE_APP, VERSION),
+        "Accept": "application/vnd.github+json",
+    })
+    return urllib.request.urlopen(peticion, timeout=timeout, context=contexto_tls(True))
+
+
+def consultar_ultima_version():
+    """Pregunta a GitHub por la última versión publicada. Se ejecuta en un hilo."""
+    with abrir_url(URL_ULTIMA_VERSION, 15) as r:
+        datos = json.loads(r.read(2 * 1024 * 1024).decode("utf-8"))
+    etiqueta = str(datos.get("tag_name") or "")
+    instalador = None
+    prefijo = "https://github.com/%s/releases/download/" % REPO_GITHUB
+    for archivo in datos.get("assets") or []:
+        nombre = str(archivo.get("name") or "")
+        url = str(archivo.get("browser_download_url") or "")
+        # Solo se acepta el instalador publicado en el propio repositorio de AccesIRC.
+        if nombre.lower().endswith("-instalador.exe") and url.lower().startswith(prefijo.lower()):
+            instalador = {"nombre": nombre, "url": url, "tamano": int(archivo.get("size") or 0),
+                          "digest": str(archivo.get("digest") or "")}
+            break
+    return {
+        "version": etiqueta.lstrip("vV") or "?",
+        "tupla": version_tupla(etiqueta),
+        "notas": str(datos.get("body") or "").replace("\r\n", "\n").strip(),
+        "pagina": str(datos.get("html_url") or URL_DESCARGAS),
+        "instalador": instalador,
+    }
+
+
+def es_version_instalada():
+    """True si este AccesIRC es el ejecutable que puso el instalador (tiene desinstalador al lado).
+    La versión portátil y la de Python no se actualizan solas: se avisa y se abre la página."""
+    if not getattr(sys, "frozen", False) or sys.platform != "win32":
+        return False
+    carpeta = os.path.dirname(os.path.abspath(sys.executable))
+    try:
+        return any(n.lower().startswith("unins") and n.lower().endswith(".exe") for n in os.listdir(carpeta))
+    except OSError:
+        return False
+
+
+def descargar_instalador(instalador, progreso, cancelado):
+    """Descarga el instalador, comprueba tamaño y huella SHA-256, y devuelve su ruta.
+    progreso(hecho, total) se llama desde este hilo; cancelado() devuelve True para parar."""
+    os.makedirs(DIR_ACTUALIZACION, exist_ok=True)
+    destino = os.path.join(DIR_ACTUALIZACION, nombre_archivo_limpio(instalador["nombre"]))
+    temporal = destino + ".descarga"
+    resumen = hashlib.sha256()
+    hecho = 0
+    try:
+        with abrir_url(instalador["url"], 30) as r, open(temporal, "wb") as f:
+            total = instalador["tamano"] or int(r.headers.get("Content-Length") or 0)
+            while True:
+                if cancelado():
+                    raise OSError("descarga cancelada")
+                bloque = r.read(65536)
+                if not bloque:
+                    break
+                f.write(bloque)
+                resumen.update(bloque)
+                hecho += len(bloque)
+                if hecho > 300 * 1024 * 1024:
+                    raise OSError("el archivo es demasiado grande")
+                progreso(hecho, total)
+        if instalador["tamano"] and hecho != instalador["tamano"]:
+            raise OSError("la descarga está incompleta")
+        digest = instalador["digest"]
+        if digest.lower().startswith("sha256:") and digest[7:].lower() != resumen.hexdigest():
+            raise OSError("el archivo descargado no coincide con el publicado")
+        os.replace(temporal, destino)
+        return destino
+    except BaseException:
+        try:
+            os.remove(temporal)
+        except OSError:
+            pass
+        raise
+
+
+def limpiar_actualizaciones_antiguas():
+    """Borra los instaladores descargados en actualizaciones anteriores."""
+    try:
+        for nombre in os.listdir(DIR_ACTUALIZACION):
+            try:
+                os.remove(os.path.join(DIR_ACTUALIZACION, nombre))
+            except OSError:
+                pass
+    except OSError:
+        pass
 
 
 class Transferencia:
@@ -1649,6 +1766,42 @@ class DialogoOpcionesDCC(wx.Dialog):
         self.cfg["dcc_pasivo"] = self.chk_pasivo.GetValue()
 
 
+class DialogoActualizacion(wx.Dialog):
+    """Avisa de una versión nueva. Devuelve wx.ID_OK (actualizar o abrir la página),
+    wx.ID_IGNORE (omitir esta versión) o wx.ID_CANCEL (más tarde)."""
+
+    def __init__(self, padre, info, puede_instalar):
+        super().__init__(padre, title="Hay una versión nueva de AccesIRC", size=(640, 460),
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        if puede_instalar:
+            accion = ("Pulsa «Actualizar ahora»: AccesIRC descargará la nueva versión, se cerrará, "
+                      "se instalará y se volverá a abrir solo. Tu configuración se conserva.")
+        else:
+            accion = ("Pulsa «Abrir la página de descarga» para bajarla. Si usas el instalador, "
+                      "las próximas versiones se instalarán solas.")
+        texto = "Está disponible AccesIRC %s. Tienes la %s.\n%s\n\nNOVEDADES\n\n%s" % (
+            info["version"], VERSION, accion, info["notas"] or "Sin descripción.")
+        s = wx.BoxSizer(wx.VERTICAL)
+        s.Add(wx.StaticText(self, label="&Información de la versión nueva:"), 0, wx.LEFT | wx.TOP, 8)
+        ctrl = wx.TextCtrl(self, value=texto, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        s.Add(ctrl, 1, wx.EXPAND | wx.ALL, 8)
+        fila = wx.BoxSizer(wx.HORIZONTAL)
+        principal = wx.Button(self, wx.ID_OK, "&Actualizar ahora" if puede_instalar
+                              else "&Abrir la página de descarga")
+        omitir = wx.Button(self, wx.ID_IGNORE, "&Omitir esta versión")
+        tarde = wx.Button(self, wx.ID_CANCEL, "&Más tarde")
+        for boton in (principal, omitir, tarde):
+            boton.Bind(wx.EVT_BUTTON, lambda e, i=boton.GetId(): self.EndModal(i))
+            fila.Add(boton, 0, wx.ALL, 4)
+        s.Add(fila, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
+        principal.SetDefault()
+        self.SetEscapeId(wx.ID_CANCEL)
+        self.SetSizer(s)
+        self.CentreOnParent()
+        ctrl.SetFocus()
+        ctrl.SetInsertionPoint(0)
+
+
 class DialogoTransferencias(wx.Dialog):
     def __init__(self, padre, principal):
         super().__init__(padre, title="Transferencias de archivos", size=(640, 400),
@@ -1718,6 +1871,8 @@ class Principal(wx.Frame):
         ("sonidos", "&Sonidos", "F5", "Sonidos activados", "Sonidos desactivados"),
         ("mostrar_hora", "Mostrar la &hora en el historial", "",
          "Hora visible en el historial", "Hora oculta en el historial"),
+        ("buscar_actualizaciones", "Buscar act&ualizaciones al iniciar", "",
+         "Se buscarán actualizaciones al iniciar", "No se buscarán actualizaciones al iniciar"),
         ("guardar_registros", "&Guardar registros de conversación", "",
          "Se guardarán los registros", "No se guardarán los registros"),
     ]
@@ -1754,6 +1909,8 @@ class Principal(wx.Frame):
         self.dcc_preguntando = False
         self.hosts_usuarios = {}
         self.userhost_pedidos = set()
+        self.actualizando = False
+        self.mensaje_salida = "AccesIRC"
         self.claves_canal = {}      # canal en minúsculas -> clave, para volver a entrar al reconectar
 
         self._crear_menu()
@@ -1764,6 +1921,10 @@ class Principal(wx.Frame):
         self.Show()
         self.entrada.SetFocus()
         wx.CallAfter(self.dialogo_conectar)
+        limpiar_actualizaciones_antiguas()
+        if (self.cfg["buscar_actualizaciones"]
+                and time.time() - float(self.cfg.get("ultima_comprobacion") or 0) > INTERVALO_ACTUALIZACION):
+            wx.CallLater(10000, self.comprobar_actualizaciones, False)
 
     # ----- construcción de la interfaz -----
 
@@ -1804,6 +1965,7 @@ class Principal(wx.Frame):
         m = wx.Menu()
         self._item(m, "&Atajos de teclado y órdenes\tF1", lambda e: self.mostrar_ayuda())
         self._item(m, "&Diagnóstico de la conexión cifrada", lambda e: self.diagnostico_tls())
+        self._item(m, "&Buscar actualizaciones...", lambda e: self.comprobar_actualizaciones(True))
         self._item(m, "Acerca &de AccesIRC", lambda e: wx.MessageBox(
             "AccesIRC %s\nCliente IRC accesible para lectores de pantalla." % VERSION,
             "Acerca de AccesIRC", wx.OK | wx.ICON_INFORMATION, self))
@@ -3375,13 +3537,143 @@ class Principal(wx.Frame):
         else:
             self.enviar(("%s %s" % (orden.upper(), resto)).strip())
 
+    # ----- actualizaciones -----
+
+    def comprobar_actualizaciones(self, manual):
+        """manual=True desde el menú Ayuda: siempre responde. Automática: solo avisa si hay algo."""
+        if self.actualizando:
+            if manual:
+                self.hablar("Ya se está descargando una actualización", True)
+            return
+        if manual:
+            self.hablar("Buscando actualizaciones...", True)
+
+        def trabajo():
+            info = error = None
+            try:
+                info = consultar_ultima_version()
+            except Exception as e:
+                error = e
+            wx.CallAfter(self._resultado_actualizacion, info, error, manual)
+        threading.Thread(target=trabajo, daemon=True).start()
+
+    def _resultado_actualizacion(self, info, error, manual):
+        self.cfg["ultima_comprobacion"] = time.time()
+        guardar_config(self.cfg)
+        if error is not None:
+            registrar_error("No se pudo comprobar si hay actualizaciones: %r" % error)
+            if manual:
+                if isinstance(error, urllib.error.HTTPError) and error.code == 404:
+                    texto = "Todavía no hay ninguna versión publicada."
+                else:
+                    texto = "No se pudo comprobar si hay actualizaciones: %s" % describir_error(error)
+                wx.MessageBox(texto, "Buscar actualizaciones", wx.OK | wx.ICON_WARNING, self)
+            return
+        if info["tupla"] <= version_tupla(VERSION):
+            if manual:
+                wx.MessageBox("Tienes la versión más reciente de AccesIRC, la %s." % VERSION,
+                              "Buscar actualizaciones", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        if not manual:
+            # Sin ventanas que interrumpan: se avisa con la voz y en la ventana del servidor.
+            if self.cfg.get("version_omitida") == info["version"]:
+                return
+            texto = ("Hay una versión nueva de AccesIRC, la %s. Para verla e instalarla, ve al menú "
+                     "Ayuda, Buscar actualizaciones." % info["version"])
+            self.agregar(self.ventanas[0], texto, hablar=False)
+            self.hablar(texto)
+            return
+        puede_instalar = es_version_instalada() and info["instalador"] is not None
+        dlg = DialogoActualizacion(self, info, puede_instalar)
+        respuesta = dlg.ShowModal()
+        dlg.Destroy()
+        if respuesta == wx.ID_IGNORE:
+            self.cfg["version_omitida"] = info["version"]
+            guardar_config(self.cfg)
+            self.hablar("No se volverá a avisar de la versión %s" % info["version"], True)
+        elif respuesta == wx.ID_OK:
+            if puede_instalar:
+                self._descargar_actualizacion(info)
+            else:
+                webbrowser.open(info["pagina"])
+
+    def _descargar_actualizacion(self, info):
+        activas = [t for t in self.transferencias if t.activa()]
+        if activas:
+            dlg = wx.MessageDialog(self, "Hay %d transferencias de archivos en curso y se cortarán al "
+                                   "cerrar AccesIRC para actualizar. ¿Seguir?" % len(activas),
+                                   "Actualizar AccesIRC", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+            seguir = dlg.ShowModal() == wx.ID_YES
+            dlg.Destroy()
+            if not seguir:
+                return
+        self.actualizando = True
+        estado = {"cancelado": False, "cuarto": 0}
+        progreso = wx.ProgressDialog("Actualizar AccesIRC", "Descargando AccesIRC %s..." % info["version"],
+                                     maximum=1000, parent=self,
+                                     style=wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
+        self.hablar("Descargando la actualización", True)
+
+        def avance(hecho, total):
+            wx.CallAfter(actualizar_barra, hecho, total)
+
+        def actualizar_barra(hecho, total):
+            if estado["cancelado"] or not progreso:
+                return
+            valor = min(999, int(hecho * 1000 / total)) if total else 0
+            seguir, _ = progreso.Update(valor, "Descargando AccesIRC %s: %s de %s" % (
+                info["version"], tamano_legible(hecho), tamano_legible(total) if total else "?"))
+            if not seguir:
+                estado["cancelado"] = True
+            cuarto = hecho * 4 // total if total else 0
+            if 0 < cuarto < 4 and cuarto > estado["cuarto"]:
+                estado["cuarto"] = cuarto
+                self.hablar("%d por ciento" % (cuarto * 25))
+
+        def trabajo():
+            ruta = error = None
+            try:
+                ruta = descargar_instalador(info["instalador"], avance, lambda: estado["cancelado"])
+            except Exception as e:
+                error = e
+            wx.CallAfter(terminado, ruta, error)
+
+        def terminado(ruta, error):
+            progreso.Destroy()
+            self.actualizando = False
+            if error is not None:
+                if estado["cancelado"]:
+                    self.hablar("Actualización cancelada", True)
+                    return
+                registrar_error("Falló la descarga de la actualización: %r" % error)
+                wx.MessageBox("No se pudo descargar la actualización: %s\n\nPuedes bajarla a mano desde:\n%s"
+                              % (describir_error(error), info["pagina"]),
+                              "Actualizar AccesIRC", wx.OK | wx.ICON_WARNING, self)
+                return
+            self._instalar_actualizacion(ruta, info)
+        threading.Thread(target=trabajo, daemon=True).start()
+
+    def _instalar_actualizacion(self, ruta, info):
+        try:
+            # /SILENT muestra solo el avance; /REABRIR=si hace que el instalador vuelva a abrir AccesIRC.
+            subprocess.Popen([ruta, "/SP-", "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
+                              "/CLOSEAPPLICATIONS", "/REABRIR=si"], close_fds=True)
+        except OSError as e:
+            registrar_error("No se pudo abrir el instalador %s: %r" % (ruta, e))
+            wx.MessageBox("No se pudo abrir el instalador: %s\n\nEstá en:\n%s" % (describir_error(e), ruta),
+                          "Actualizar AccesIRC", wx.OK | wx.ICON_WARNING, self)
+            return
+        self.hablar("Instalando AccesIRC %s. Se volverá a abrir solo en unos segundos." % info["version"], True)
+        self.mensaje_salida = "Actualizando AccesIRC"
+        wx.CallLater(1500, self.Close)
+
     # ----- cierre -----
 
     def al_cerrar(self, ev):
         for t in self.transferencias:
             if t.activa():
                 t.cancelar()
-        self.desconectar("AccesIRC")
+        self.desconectar(self.mensaje_salida)
         guardar_config(self.cfg)
         self.Destroy()
 

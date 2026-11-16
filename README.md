@@ -20,7 +20,7 @@ Cliente de IRC para Windows pensado para usarse con lector de pantalla (NVDA, JA
    «Ejecutar de todas formas»: aparece porque el programa no está firmado.
 3. Pulsa Siguiente en cada paso. AccesIRC queda en el menú Inicio.
 
-No pide permisos de administrador. Para actualizar, basta con abrir el instalador de la versión nueva.
+No pide permisos de administrador. Desde la 1.6.0, AccesIRC avisa de las versiones nuevas y se actualiza solo desde el menú Ayuda, «Buscar actualizaciones».
 
 También hay una versión portátil, `AccesIRC-…-portatil.zip`: se descomprime entera y se abre `AccesIRC.exe`.
 
@@ -54,7 +54,7 @@ Dentro del programa, F1 muestra la lista completa de atajos.
 
 La configuración se guarda en `%APPDATA%\AccesIRC\config.json`, con las contraseñas cifradas
 con tu usuario de Windows. Las conversaciones se guardan en `%APPDATA%\AccesIRC\registros`
-(se puede desactivar). Para enviar archivos, AccesIRC consulta tu IP pública en api.ipify.org
+(se puede desactivar). Una vez al día consulta api.github.com para buscar actualizaciones, y para enviar archivos, AccesIRC consulta tu IP pública en api.ipify.org
 (también se puede desactivar).
 
 ## Requisitos
