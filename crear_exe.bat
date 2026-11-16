@@ -13,6 +13,7 @@ if not exist "dist\AccesIRC\AccesIRC.exe" (
   exit /b 1
 )
 copy /y LEEME.txt "dist\AccesIRC\" >nul
+copy /y LICENSE "dist\AccesIRC\" >nul
 echo Comprimiendo para compartir...
 powershell -NoProfile -Command "Compress-Archive -Force -Path 'dist\AccesIRC' -DestinationPath 'dist\AccesIRC-para-compartir.zip'"
 echo.
