@@ -13,20 +13,29 @@ Cliente de IRC para Windows pensado para usarse con lector de pantalla (NVDA, JA
 
 ## Instalación
 
+### Con el instalador (recomendado, no necesita Python)
+
+1. Descarga `AccesIRC-…-instalador.exe` de la sección [Releases](../../releases).
+2. Ábrelo. Si Windows muestra «Windows protegió su PC», pulsa «Más información» y
+   «Ejecutar de todas formas»: aparece porque el programa no está firmado.
+3. Pulsa Siguiente en cada paso. AccesIRC queda en el menú Inicio.
+
+No pide permisos de administrador. Para actualizar, basta con abrir el instalador de la versión nueva.
+
+También hay una versión portátil, `AccesIRC-…-portatil.zip`: se descomprime entera y se abre `AccesIRC.exe`.
+
 ### Con Python
 
-1. Instala Python 3.12 o posterior desde [python.org](https://www.python.org/downloads/).
-   En el instalador, marca la casilla «Add python.exe to PATH».
+1. Instala Python 3.13 desde [python.org](https://www.python.org/downloads/windows/)
+   («Windows installer (64-bit)»), marcando «Add python.exe to PATH».
 2. Descarga este proyecto (botón «Code», «Download ZIP») y descomprímelo.
-3. Ejecuta `instalar.bat` y espera a que diga «Listo».
-4. Abre `AccesIRC.bat`.
+3. Ejecuta `instalar.bat` y después abre `AccesIRC.bat`.
 
-### Programa ejecutable
+### Crear el instalador
 
-En la sección [Releases](../../releases) puede haber un zip con `AccesIRC.exe`, que no necesita Python.
-Hay que descomprimir el zip entero: el exe solo no funciona sin la carpeta `_internal` que lo acompaña.
-
-Para crear el ejecutable tú mismo, ejecuta `crear_exe.bat` después de `instalar.bat`.
+Con Python 3.13 y [Inno Setup](https://jrsoftware.org/isinfo.php) instalados
+(`winget install JRSoftware.InnoSetup`), ejecuta `crear_exe.bat`. El instalador y la versión
+portátil aparecen en la carpeta `dist`.
 
 ## Uso
 

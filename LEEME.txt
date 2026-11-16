@@ -14,20 +14,34 @@ NOVEDADES DE LA 1.5.3
 - Canales con clave en «Canales al entrar», y las claves de /join #canal clave se recuerdan
   al reconectar.
 
-INSTALACIÓN (solo la primera vez)
+INSTALACIÓN
 
-1. Instala Python desde python.org (la versión 3.12 es la más segura).
+CON EL INSTALADOR (LO MÁS FÁCIL, NO HACE FALTA PYTHON)
+1. Abre AccesIRC-1.5.3-instalador.exe.
+2. Si Windows muestra "Windows protegió su PC", es porque el programa es nuevo y no está
+   firmado. Pulsa "Más información" y después "Ejecutar de todas formas".
+3. Pulsa Siguiente en cada paso. Puedes marcar "Crear un acceso directo en el escritorio".
+4. Al terminar, AccesIRC queda en el menú Inicio. Para abrirlo, pulsa la tecla Windows,
+   escribe AccesIRC e Intro.
+No pide permisos de administrador. Para actualizar a una versión nueva, abre su instalador:
+tu configuración y tus contraseñas se conservan. Se desinstala desde Configuración,
+Aplicaciones, como cualquier programa.
+
+VERSIÓN PORTÁTIL (SIN INSTALAR)
+Descomprime entero AccesIRC-1.5.3-portatil.zip donde quieras, por ejemplo en un pendrive,
+y abre AccesIRC.exe. El exe solo no funciona sin la carpeta _internal que lo acompaña.
+
+CON PYTHON (PARA QUIEN QUIERA EL CÓDIGO FUENTE)
+1. Instala Python 3.13 desde python.org: el "Windows installer (64-bit)".
    En el instalador, marca la casilla "Add python.exe to PATH".
 2. Descomprime esta carpeta donde quieras, por ejemplo en Documentos.
-3. Ejecuta instalar.bat y espera a que diga "Listo".
-
+3. Ejecuta instalar.bat y espera a que diga "Listo". Después abre AccesIRC.bat.
 Si actualizas desde una versión anterior, sustituye AccesIRC.py y requirements.txt y
-vuelve a ejecutar instalar.bat (la 1.3 necesita dos componentes nuevos para los
-certificados). Tu configuración se conserva.
+vuelve a ejecutar instalar.bat. Tu configuración se conserva.
 
 CONECTARSE CON EL APODO REGISTRADO, SIN ESCRIBIR LA CONTRASEÑA CADA VEZ
 
-Abre AccesIRC.bat, o pulsa Control+O. En el diálogo de conexión:
+Abre AccesIRC, o pulsa Control+O. En el diálogo de conexión:
   Red: elige Chat Hispano (o escribe el nombre de otra red).
   Apodo: tu apodo, sin la contraseña.
   Método de identificación: "Contraseña junto al apodo" para Chat Hispano.
@@ -157,11 +171,11 @@ el menú Opciones). Si algo falla, los detalles están en %APPDATA%\AccesIRC\err
 Para enviar archivos, AccesIRC consulta tu IP pública en api.ipify.org. Se puede
 desactivar en Opciones de DCC.
 
-PROGRAMA EJECUTABLE (OPCIONAL)
-Si quieres un AccesIRC.exe que funcione sin Python, ejecuta crear_exe.bat después de
-instalar.bat. En la carpeta dist aparecerán la carpeta AccesIRC, con AccesIRC.exe dentro,
-y AccesIRC-para-compartir.zip para enviarlo a otras personas. Hay que descomprimir el zip
-entero: el exe solo no funciona sin la carpeta _internal que lo acompaña.
+CREAR EL INSTALADOR (SOLO PARA QUIEN DISTRIBUYE EL PROGRAMA)
+Con Python 3.13 instalado, ejecuta crear_exe.bat. Instala lo que necesita, crea el programa
+y deja en la carpeta dist AccesIRC-versión-instalador.exe y AccesIRC-versión-portatil.zip.
+Para el instalador hace falta Inno Setup, que es gratuito: en una ventana de cmd, escribe
+winget install JRSoftware.InnoSetup, o descárgalo de jrsoftware.org.
 
 PROBLEMAS CON LA VOZ
 Pulsa Control+Mayúsculas+V. Dirá con qué lector está hablando. Si no encuentra ninguno,
